@@ -1,6 +1,15 @@
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+const sendgridTransport = require('nodemailer-sendgrid-transport');
 
 const User = require('../models/user');
+
+const transporter = nodemailer.createTransport(sendgridTransport({
+    auth: {
+        api_key: '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'
+
+    }
+}));
 
 exports.getLogin = (req, res, next) => {
     let message = req.flash('error');
@@ -60,12 +69,12 @@ exports.postLogin = (req, res, next) => {
 };
 
 exports.postSignup = (req, res, next) => {
+    const username = req.body.username;
     const email = req.body.email;
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
 
-    console.log(password);
-    console.log(confirmPassword);
+
     if (password !== confirmPassword) {
         req.flash('error', 'Passwords do not match.');
         return res.redirect('/signup');
@@ -79,6 +88,7 @@ exports.postSignup = (req, res, next) => {
             return bcrypt.hash(password,12)
         .then(hashedPassword => {
         const user = new User({
+            username: username,
             email: email,
             password: hashedPassword,
 
@@ -88,7 +98,16 @@ exports.postSignup = (req, res, next) => {
 })
 .then(result => {
         res.redirect('/login');
+    return transporter.sendMail({
+           to:email,
+           from: 'shop@node-complete.com',
+           subject: 'Signup succeeded!',
+           html: '<h1>You successfully signed up!</h1>'
+        });
 })
+            .catch(err => {
+            console.log(err);
+    });
         })
             .catch(err => {
             console.log(err);
